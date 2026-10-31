@@ -31,7 +31,7 @@ DialogWidth=720
 [Containments][23][Applets][24][Configuration][General]
 favoritesPortedToKAstats=true
 highlightNewlyInstalledApps=false
-icon=org.cachyos.hello
+icon=launcher-c-42
 systemFavorites=suspend\\,hibernate\\,reboot\\,shutdown
 
 [Containments][23][Applets][24][Configuration][Shortcuts]

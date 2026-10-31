@@ -63,6 +63,7 @@ system/          → 镜像根分区（需 --system）
 packages/        软件包清单（显式安装 + AUR / archlinuxcn）
 third_party/linux-3-finger-drag/   触控板代理源码（上游 ae22def + 三指质心补丁）
 scripts/         构建脚本（build-3fd.sh）
+docs/            最近桌面变更 / 排障记录（Pi 会话整理）
 install.sh       恢复脚本
 ```
 
@@ -88,9 +89,9 @@ yay  -S --needed - < packages/pkglist-aur.txt
 | 部分 | 说明 |
 |---|---|
 | 主题 | KDE 全局主题 Tokyo Night + 自编译桌面主题 / 配色方案 / Kvantum / GTK3/4 |
-| 启动器 | 复制 kickoff 为 `org.kde.plasma.kickoff.nofavorites`，隐藏「收藏」页 |
+| 启动器 | 复制 kickoff 为 `org.kde.plasma.kickoff.nofavorites`，隐藏「收藏」页；Kickoff 图标换成自定义 `launcher-c-42`（青蓝渐变 C） |
 | 字体 | Noto Sans CJK 全局；limine 引导字体放大；Markdown 预览字号 16/18 |
-| 输入法 | fcitx5 + pinyin + 中文词库；Wayland 走 text-input 协议，X11 走 XIM |
+| 输入法 | fcitx5 + pinyin + 中文词库；Wayland 走原生 text-input（**不要**设置 `GTK_IM_MODULE/QT_IM_MODULE=fcitx`，否则 GTK 程序候选框会退回 XWayland 绘制并变成白底默认主题），X11 走 XIM |
 | 终端 | Kitty 为主终端（单窗口无标签、Ctrl+Alt+T、Ctrl+Shift+Enter 新窗口）；Konsole(Tokyo Night) / Alacritty 备用；fish + starship + eza |
 | 系统信息 | 自定义 fastfetch（左图标小、左右 padding、无最后一行分割线） |
 | 键盘灯光 | `ite8291r3` 经 usb 直写；`laptop-lights` 按时间自动亮度（白天 100 / 夜间 45），其余灯全关、仅键盘常亮白色；行间偏色补偿（TOP_SHIFT/BOTTOM_SHIFT） |
@@ -106,7 +107,11 @@ yay  -S --needed - < packages/pkglist-aur.txt
 - 浏览器/应用数据：`mozilla/`、`bilibili/`、`Code - OSS` 的用户数据与缓存、`wechat-universal`、`Kingsoft` 账户信息
 - `clash-verge` 订阅链接与 `secret`（`config.yaml` 中已替换为 `<redacted>`）
 - 硬件标识：limine 中的 `machine-id` / `UUID` / 校验和，`kwinoutputconfig.json` 的 EDID hash 与显示器 UUID
-- 各类缓存、日志、回收站、Steam 游戏数据、Pi 会话记录（含截图与对话）
+- 各类缓存、日志、回收站、Steam 游戏数据、Pi 原始会话日志（桌面相关结论已整理到 `docs/pi-desktop-notes.md`，不含原始截图与对话）
+
+## 最近桌面变更记录
+
+- [docs/pi-desktop-notes.md](docs/pi-desktop-notes.md)：2026-10-31 ~ 11-01 期间与桌面设置有关的 Pi 会话整理，包含输入法候选框变白（Firefox）的根因与修复、开始菜单图标、 Kitty、三指拖移、混合显卡、Limine/键盘灯等。
 
 ## 备注
 

@@ -9,12 +9,12 @@ fish_add_path ~/.npm-global/bin
 #    # smth smth
 #end
 
-# --- fcitx5 input method (for Chinese input in English UI) ---
-set -gx GTK_IM_MODULE fcitx
-set -gx QT_IM_MODULE fcitx
+# --- fcitx5 input method ---
+# Wayland 下不要再设 GTK_IM_MODULE / QT_IM_MODULE=fcitx：
+# 否则 GTK 应用（如 Firefox）会走 fcitx 的 D-Bus 前端，候选框退回 XWayland
+# 绘制并显示成默认白色主题。让 GTK/Qt 使用原生 text-input 协议即可。
 set -gx XMODIFIERS @im=fcitx
-set -gx INPUT_METHOD fcitx
-set -gx SDL_IM_MODULE fcitx
+set -gx QT_IM_MODULES 'wayland;fcitx'
 starship init fish | source
 
 # --- eza aliases (Tokyo Night styled ls) ---
