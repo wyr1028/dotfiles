@@ -1,0 +1,305 @@
+--- a/src/runtime/gesture.rs
++++ b/src/runtime/gesture.rs
+@@ -24,7 +24,7 @@
+ //!   settles it instantly (nothing with 4 fingers is ours).
+ //! * A touch that holds at exactly 3 fingers through the debounce window
+ //!   becomes a drag: buffered frames are discarded, the compositor never
+-//!   learns those fingers existed, and finger motion drives the virtual
++//!   learns those fingers existed, and the group's centroid drives the virtual
+ //!   mouse instead.
+ //! * Once a drag starts it only ends when *every* finger lifts
+ //!   (hysteresis: staggered liftoff must not leak trailing 1-2 finger
+@@ -151,8 +151,13 @@
+ 
+     /// True while a 3-finger drag owns the touch: nothing is relayed.
+     suppressing: bool,
+-    drag_ref_slot: Option<usize>,
+-    drag_last_pos: Option<(i32, i32)>,
++    /// Slots whose centroid currently drives the drag. Compared against
++    /// the live active set every frame; any change (finger landing or
++    /// lifting) forces a re-baseline so the set change can't look like
++    /// cursor motion.
++    drag_slots: Vec<usize>,
++    /// Last centroid of `drag_slots`, in fractional device units.
++    drag_last_pos: Option<(f64, f64)>,
+     /// Sub-pixel motion carried between frames.
+     carry: (f64, f64),
+     /// While a committed drag hasn't moved yet: when to press the button
+@@ -195,7 +200,7 @@
+             current_slot: 0,
+             relayed_active: [false; MAX_SLOTS],
+             suppressing: false,
+-            drag_ref_slot: None,
++            drag_slots: Vec::new(),
+             drag_last_pos: None,
+             carry: (0.0, 0.0),
+             press_deadline: None,
+@@ -340,8 +345,8 @@
+ 
+         if self.suppressing {
+             // drive_drag reads self.slots directly next frame; the drop
+-            // may have moved the reference finger arbitrarily far, so
+-            // re-baseline rather than applying the gap as a cursor jump.
++            // may have moved the fingers arbitrarily far, so re-baseline
++            // rather than applying the gap as a cursor jump.
+             self.drag_last_pos = None;
+         } else if self.touch_start.is_some() && !self.settled && self.active_count() == 0 {
+             // Every finger lifted *inside* the dropped window while the
+@@ -413,7 +418,7 @@
+         if self.suppressing {
+             if count == 0 {
+                 self.suppressing = false;
+-                self.drag_ref_slot = None;
++                self.drag_slots.clear();
+                 self.drag_last_pos = None;
+                 self.press_deadline = None;
+                 // Reset touch bookkeeping: without this the next touch
+@@ -456,7 +461,7 @@
+                     debug!("late 4th finger: aborting committed drag, handing touch to compositor");
+                 }
+                 self.suppressing = false;
+-                self.drag_ref_slot = None;
++                self.drag_slots.clear();
+                 self.drag_last_pos = None;
+                 self.press_deadline = None;
+                 self.settled = true; // continues as an ordinary live touch
+@@ -689,41 +694,64 @@
+     }
+ 
+     fn drive_drag(&mut self, active: &[usize], out: &mut Vec<Output>) {
+-        let reference = match self.drag_ref_slot {
+-            Some(s) if active.contains(&s) => s,
+-            _ => {
+-                // first frame of the gesture, or the previous reference
+-                // finger lifted and another took its place: re-baseline
+-                // without applying a delta this frame.
+-                let s = active[0];
+-                self.drag_ref_slot = Some(s);
+-                self.drag_last_pos = Some((self.slots[s].x, self.slots[s].y));
++        // The cursor follows the centroid of every finger that's down,
++        // not one arbitrary "reference" finger. Averaging the whole
++        // group cancels a single finger's jitter and still follows the
++        // hand's actual motion when one finger lags behind the others.
++        if active.is_empty() {
++            return;
++        }
++        let (x, y) = self.centroid(active);
++
++        // First frame of the gesture, or the set of contributing
++        // fingers changed (one lifted, another landed): re-baseline
++        // without emitting a delta, because the centroid necessarily
++        // jumps when the set changes.
++        if self.drag_slots.as_slice() != active {
++            self.drag_slots.clear();
++            self.drag_slots.extend_from_slice(active);
++            self.drag_last_pos = Some((x, y));
++            return;
++        }
++
++        let (lx, ly) = match self.drag_last_pos {
++            Some(pos) => pos,
++            None => {
++                // SYN_DROPPED resync: the fingers may have teleported
++                // during the drop, so start from a fresh baseline.
++                self.drag_last_pos = Some((x, y));
+                 return;
+             }
+         };
+ 
+-        let (x, y) = (self.slots[reference].x, self.slots[reference].y);
+-        if let Some((lx, ly)) = self.drag_last_pos {
+-            let px = (x - lx) as f64 / self.x_res * self.timing.px_per_mm + self.carry.0;
+-            let py = (y - ly) as f64 / self.y_res * self.timing.px_per_mm + self.carry.1;
+-            let dx = px.trunc() as i32;
+-            let dy = py.trunc() as i32;
+-            // carry the sub-pixel remainder instead of discarding it, so
+-            // slow, precise drags don't systematically lose motion
+-            self.carry = (px - dx as f64, py - dy as f64);
+-            if dx != 0 || dy != 0 {
+-                // real drag motion: the deferred press (if still pending)
+-                // must land before the movement it accompanies
+-                self.press_button(out);
+-                out.push(Output::MouseMove { dx, dy });
+-            }
+-        } else {
+-            self.drag_last_pos = Some((x, y));
+-            return;
++        let px = (x - lx) / self.x_res * self.timing.px_per_mm + self.carry.0;
++        let py = (y - ly) / self.y_res * self.timing.px_per_mm + self.carry.1;
++        let dx = px.trunc() as i32;
++        let dy = py.trunc() as i32;
++        // carry the sub-pixel remainder instead of discarding it, so
++        // slow, precise drags don't systematically lose motion
++        self.carry = (px - dx as f64, py - dy as f64);
++        if dx != 0 || dy != 0 {
++            // real drag motion: the deferred press (if still pending)
++            // must land before the movement it accompanies
++            self.press_button(out);
++            out.push(Output::MouseMove { dx, dy });
+         }
+         self.drag_last_pos = Some((x, y));
+     }
+ 
++    /// Mean position, in device units, of the given active slots.
++    fn centroid(&self, active: &[usize]) -> (f64, f64) {
++        let mut sx = 0.0;
++        let mut sy = 0.0;
++        for &slot in active {
++            sx += self.slots[slot].x as f64;
++            sy += self.slots[slot].y as f64;
++        }
++        let n = active.len() as f64;
++        (sx / n, sy / n)
++    }
++
+     /// SLOT/TRACKING_ID/X/Y events asserting the current state of every
+     /// active slot (used to correct downstream state after a resync).
+     fn active_slot_dump(&self) -> Vec<Ev> {
+--- a/src/runtime/gesture/tests.rs
++++ b/src/runtime/gesture/tests.rs
+@@ -78,6 +78,16 @@
+     parts.iter().flat_map(|p| p.iter().copied()).collect()
+ }
+ 
++/// Move all three fingers of `start_drag`'s touchdown together by the
++/// same amount -- what a hand does during an ordinary drag.
++fn mv_all(dx: i32, dy: i32) -> Vec<Ev> {
++    cat(&[
++        &mv(0, 500 + dx, 500 + dy),
++        &mv(1, 600 + dx, 500 + dy),
++        &mv(2, 700 + dx, 500 + dy),
++    ])
++}
++
+ // -- output inspectors ---------------------------------------------------
+ 
+ fn mouse_downs(outs: &[Output]) -> usize {
+@@ -462,7 +472,7 @@
+ // drag behavior
+ // =========================================================================
+ 
+-/// Motion of the reference finger drives the virtual mouse, scaled by
++/// Motion of the three-finger group drives the virtual mouse, scaled by
+ /// resolution and px_per_mm, with sub-pixel remainders carried (not
+ /// discarded) so slow drags don't lose motion.
+ #[test]
+@@ -471,7 +481,7 @@
+     start_drag(&mut sim);
+ 
+     // 10 units = 1mm = 12px exactly
+-    let outs = sim.frame_at(10, &mv(0, 510, 500));
++    let outs = sim.frame_at(10, &mv_all(10, 0));
+     assert_eq!(total_move(&outs), (12, 0));
+ 
+     // five frames of 0.3px each (0.25 units): trunc-only would emit 0
+@@ -482,13 +492,36 @@
+         // moving 1 unit every 4th frame is NOT the same thing -- so use
+         // y axis: 1 unit = 0.1mm = 1.2px... instead go smaller: 0.4px =
+         // not representable. Use repeated 1-unit moves: 1.2px -> 1px + 0.2 carry
+-        acc = collect(acc, sim.frame_at(8, &mv(0, 510 + i, 500)));
++        acc = collect(acc, sim.frame_at(8, &mv_all(10 + i, 0)));
+     }
+     // 5 units = 0.5mm = 6.0px total; trunc-per-frame would give 5px
+     let (dx, _) = total_move(&acc);
+     assert_eq!(dx, 6, "sub-pixel carry must not lose motion (got {dx})");
+ }
+ 
++/// The drag follows the centroid of all three fingers: moving the whole
++/// group moves the cursor by the group's displacement, while a single
++/// finger's movement only moves it by that finger's 1/3 share. One
++/// noisy finger therefore can't yank the drag around.
++#[test]
++fn drag_follows_three_finger_centroid() {
++    let mut sim = Sim::new();
++    start_drag(&mut sim);
++
++    // whole group +10 units = +12px
++    let outs = sim.frame_at(10, &mv_all(10, 0));
++    assert_eq!(total_move(&outs), (12, 0));
++
++    // only slot 0 advances 30 units: the centroid moves 10 units = 12px
++    // (single-reference tracking would have produced 36px here)
++    let outs = sim.frame_at(10, &mv(0, 540, 500));
++    assert_eq!(total_move(&outs), (12, 0));
++
++    // only slot 1 advances 30 units: same 1/3 share of the motion
++    let outs = sim.frame_at(10, &mv(1, 640, 500));
++    assert_eq!(total_move(&outs), (12, 0));
++}
++
+ /// Once dragging, a partial liftoff (3 -> 2 -> 1) continues the drag
+ /// with the remaining finger, and NOTHING leaks to the compositor --
+ /// the historical phantom-right-click bug.
+@@ -514,7 +547,7 @@
+     // position (500) would have produced a 210-unit = 252px jump instead
+     assert_eq!(
+         dx, 24,
+-        "after reference handoff, motion resumes from new baseline"
++        "after the finger set shrinks, motion resumes from the new baseline"
+     );
+ 
+     outs = sim.frame_at(10, &up(2)); // all up
+@@ -595,7 +628,7 @@
+     assert_eq!(mouse_ups(&outs), 0);
+ 
+     // and the resumed drag still moves
+-    let outs = sim.frame_at(10, &mv(0, 520, 500));
++    let outs = sim.frame_at(10, &mv_all(20, 0));
+     let (dx, _) = total_move(&outs);
+     assert!(dx > 0);
+ }
+@@ -693,7 +726,7 @@
+     sim.frame_at(10, &mv(0, 510, 500)); // establish motion
+ 
+     let mut snapshot = vec![(-1, 0, 0); 16];
+-    snapshot[0] = (100, 900, 900); // reference finger "teleported" in the drop
++    snapshot[0] = (100, 900, 900); // finger 0 "teleported" in the drop
+     snapshot[1] = (101, 600, 500);
+     snapshot[2] = (102, 700, 500);
+     let outs = sim.m.on_resync(&snapshot, sim.now);
+@@ -703,8 +736,12 @@
+         "the drop gap must not become a jump"
+     );
+ 
+-    // next real motion moves normally from the new (900,900) baseline
+-    let outs = sim.frame_at(10, &mv(0, 910, 910));
++    // next real motion moves normally from the new baseline (all three
++    // fingers advance together, so the centroid advances by 10 units)
++    let outs = sim.frame_at(
++        10,
++        &cat(&[&mv(0, 910, 910), &mv(1, 610, 510), &mv(2, 710, 510)]),
++    );
+     assert_eq!(total_move(&outs), (12, 12));
+ }
+ 
+--- a/tests/integration.rs
++++ b/tests/integration.rs
+@@ -334,8 +334,15 @@
+ 
+     // hold past the entry debounce (50ms default)
+     std::thread::sleep(Duration::from_millis(90));
+-    // wiggle 2 units -- barely over one pixel of cursor motion
+-    pad.frame(&[(EV_ABS, ABS_MT_SLOT, 0), (EV_ABS, ABS_MT_POSITION_X, 802)]);
++    // wiggle all three 2 units -- barely over one pixel of cursor motion
++    pad.frame(&[
++        (EV_ABS, ABS_MT_SLOT, 0),
++        (EV_ABS, ABS_MT_POSITION_X, 802),
++        (EV_ABS, ABS_MT_SLOT, 1),
++        (EV_ABS, ABS_MT_POSITION_X, 902),
++        (EV_ABS, ABS_MT_SLOT, 2),
++        (EV_ABS, ABS_MT_POSITION_X, 1002),
++    ]);
+ 
+     let (_, got_down) = mouse.wait_for(Duration::from_secs(2), |&(t, c, v)| {
+         t == EV_KEY && c == BTN_LEFT && v == 1
+--- a/README.md
++++ b/README.md
+@@ -21,7 +21,7 @@
+ 
+ * The real touchpad is **exclusively grabbed** for the program's whole lifetime. The compositor instead reads a **synthetic clone** that impersonates the real device's identity (name/vendor/product), so saved per-device settings (natural scrolling, tap-to-click, pointer accel…) keep applying. The clone carries a `phys` marker (`linux-3-finger-drag/proxy`) so the proxy can always tell its own clone apart from real hardware.
+ * A fresh touch is **withheld** from the compositor until classified: a lone finger goes live after `probeDelay` (default 15 ms — ordinary pointer motion never feels delayed), an ambiguous 2-3 finger touch waits out `entryDebounce` (default 50 ms), 4+ fingers goes live instantly. Real fingers land and lift asynchronously; judging a touch frame-by-frame (the naive approach) leaks phantom taps and misreads gestures.
+-* A touch that holds at **exactly 3 fingers** through the debounce becomes a drag: the compositor never learns those fingers existed (KWin can't desktop-switch on what it can't see), and finger motion drives the virtual mouse with the left button held. The drag ends when the last finger lifts — staggered liftoffs can't leak trailing 1-2 finger touches (which libinput would read as a right-click tap).
++* A touch that holds at **exactly 3 fingers** through the debounce becomes a drag: the compositor never learns those fingers existed (KWin can't desktop-switch on what it can't see), and the **centroid of all three fingers** drives the virtual mouse with the left button held. Averaging the group cancels a single finger's jitter; if a finger lifts, the remaining fingers' centroid takes over without a cursor jump. The drag ends when the last finger lifts — staggered liftoffs can't leak trailing 1-2 finger touches (which libinput would read as a right-click tap).
+ * Anything else — taps (3-finger tap still middle-clicks!), scrolls, 4-finger gestures, quick flicks — is replayed to the clone verbatim.
+ 
+ The classification logic lives in a pure, I/O-free state machine (`src/runtime/gesture.rs`) driven by an injected clock, with a regression test suite encoding every failure mode this project has hit live (`src/runtime/gesture/tests.rs`). The event loop is fully event-driven (epoll on the device fd + exact decision deadlines): idle CPU is zero, and no polling interval sits between your fingers and a decision.

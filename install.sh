@@ -55,9 +55,14 @@ if [ "$WITH_SYSTEM" = 1 ]; then
   run sudo systemctl enable --now laptop-lights-save.service || true
 
   echo "    - 三指拖拽代理 + 看门狗"
-  echo "      注意：/usr/bin/linux-3-finger-drag 不在本仓库（二进制），需先构建："
-  echo "        git clone https://github.com/lmr97/linux-3-finger-drag && cd linux-3-finger-drag"
-  echo "        cargo build --release && sudo install -Dm755 target/release/linux-3-finger-drag /usr/bin/"
+  echo "      使用本仓库 vendored 的 linux-3-finger-drag（上游 ae22def + 三指质心补丁）"
+  if [ "$DRY" = 1 ]; then
+    echo "[dry] $ROOT/scripts/build-3fd.sh --install"
+  elif command -v cargo >/dev/null 2>&1; then
+    run "$ROOT/scripts/build-3fd.sh" --install
+  else
+    echo "      未找到 cargo，跳过构建；安装 Rust 后执行：$ROOT/scripts/build-3fd.sh --install"
+  fi
   run sudo systemctl enable --now three-finger-drag.service
   run sudo systemctl enable --now three-finger-drag-watchdog.timer
 
