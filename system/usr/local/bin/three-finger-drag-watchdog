@@ -1,0 +1,100 @@
+#!/usr/bin/env python3
+"""看门狗 for linux-3-finger-drag.
+
+这个代理独占 (EVIOCGRAB) 着物理触控板，KWin 拿到的只是它转发出来的虚拟设备。
+所以它一旦 崩溃 / 卡死 / 丢失抓取 / 虚拟设备消失，触控板就完全没反应。
+每 3 秒体检一次，状态不对就重启服务（重启后事件源立刻恢复）。
+"""
+import errno
+import fcntl
+import os
+import re
+import subprocess
+import sys
+
+SERVICE = "three-finger-drag.service"
+GRACE = 10.0          # 服务刚启动的宽限期，避免和 systemd 抢着重启
+EVIOCGRAB = 0x40044590
+
+
+def run(*a):
+    return subprocess.run(a, capture_output=True, text=True)
+
+
+def restart(reason):
+    run("systemctl", "reset-failed", SERVICE)
+    run("systemctl", "restart", SERVICE)
+    print(f"restarting {SERVICE}: {reason}", file=sys.stderr)
+    return 0
+
+
+def devices():
+    """返回 (真实触控板 event 节点, 代理虚拟设备是否存在)"""
+    try:
+        blocks = open("/proc/bus/input/devices").read().split("\n\n")
+    except OSError:
+        return None, False
+    real, proxy = None, False
+    for b in blocks:
+        if "linux-3-finger-drag/proxy" in b:
+            proxy = True
+        elif "Touchpad" in b and "i2c-" in b:
+            m = re.search(r"Handlers=[^\n]*\bevent(\d+)", b)
+            if m:
+                real = f"/dev/input/event{m.group(1)}"
+    return real, proxy
+
+
+def main():
+    state = run("systemctl", "is-active", SERVICE).stdout.strip()
+
+    # 用户手动 stop 的不要打扰；systemd 正在自动重启时也别插手
+    if state in ("inactive", "deactivating", "activating"):
+        return 0
+    if state != "active":
+        return restart(f"service is {state}")
+
+    pid = run("systemctl", "show", "-p", "MainPID", "--value", SERVICE).stdout.strip()
+    if not pid.isdigit() or int(pid) <= 0:
+        return restart("no MainPID")
+    pid = int(pid)
+
+    # 卡死检测：不可中断睡眠 = 卡在内核里，触控板此时无人读取
+    try:
+        stat = open(f"/proc/{pid}/stat").read().rsplit(")", 1)[1].split()
+        pstate, start_ticks = stat[0], int(stat[19])
+    except (OSError, IndexError, ValueError):
+        return restart("cannot read /proc")
+    if pstate in ("D", "T"):
+        return restart("daemon stuck in uninterruptible sleep")
+
+    uptime = float(open("/proc/uptime").read().split()[0])
+    if uptime - start_ticks / os.sysconf("SC_CLK_TCK") < GRACE:
+        return 0
+
+    real, proxy = devices()
+    if not proxy:
+        return restart("proxy device disappeared")
+    if not real:
+        return 0  # 物理触控板本身不在了，重启代理也没用
+
+    # 抓取检测：正常情况下别人 grab 会 EBUSY；能 grab 成功说明代理把设备丢了
+    try:
+        fd = os.open(real, os.O_RDWR | os.O_NONBLOCK)
+    except OSError:
+        return 0
+    try:
+        try:
+            fcntl.ioctl(fd, EVIOCGRAB, 1)
+        except OSError as e:
+            if e.errno == errno.EBUSY:
+                return 0
+            return 0
+        fcntl.ioctl(fd, EVIOCGRAB, 0)
+        return restart("daemon lost its exclusive grab")
+    finally:
+        os.close(fd)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

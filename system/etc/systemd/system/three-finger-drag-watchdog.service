@@ -1,0 +1,7 @@
+[Unit]
+Description=Watchdog for three-finger-drag (touchpad proxy)
+After=three-finger-drag.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/three-finger-drag-watchdog

@@ -1,0 +1,7 @@
+#!/bin/sh
+systemctl reset-failed three-finger-drag.service 2>/dev/null
+if systemctl restart three-finger-drag.service; then
+    command -v notify-send >/dev/null && notify-send -a "touchpad" "触控板代理已重启" "三指拖移应该已恢复"
+else
+    command -v notify-send >/dev/null && notify-send -a "touchpad" -u critical "重启失败" "看看 journalctl -u three-finger-drag"
+fi

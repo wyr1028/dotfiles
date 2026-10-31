@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Fix Touchpad
+Comment=重启三指拖移代理并重新抓取触控板
+Exec=/usr/local/bin/touchpad-fix
+Icon=input-touchpad
+Terminal=false
+NoDisplay=true
+X-KDE-StartupNotify=false

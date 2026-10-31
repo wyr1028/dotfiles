@@ -1,0 +1,8 @@
+// 允许 wyr 免密重启触控板代理（供热键/看门狗使用）
+polkit.addRule(function(action, subject) {
+    if (action.id == "org.freedesktop.systemd1.manage-units" &&
+        action.lookup("unit") == "three-finger-drag.service" &&
+        subject.user == "wyr") {
+        return polkit.Result.YES;
+    }
+});

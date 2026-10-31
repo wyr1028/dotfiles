@@ -1,0 +1,6 @@
+[Libinput][1133][50503][Logitech USB Receiver]
+PointerAcceleration=-0.600
+
+[Libinput][2362][597][UNIW0001:00 093A:0255 Touchpad]
+NaturalScroll=true
+ScrollFactor=0.75

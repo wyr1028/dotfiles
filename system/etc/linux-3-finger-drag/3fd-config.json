@@ -1,5 +1,5 @@
 {
-    "acceleration": 0.9,
+    "acceleration": 0.75,
     "dragEndDelay": 0,
     "logFile": "stdout",
     "logLevel": "info",

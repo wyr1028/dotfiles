@@ -3,8 +3,9 @@ _k_friendly_name=Activity Manager
 switch-to-activity-3e204db2-c7df-401e-80eb-869351346d2f=none,none,Switch to activity "默认"
 
 [KDE Keyboard Layout Switcher]
-Switch to Last-Used Keyboard Layout=Meta+Alt+L,Meta+Alt+L,
-Switch to Next Keyboard Layout=Meta+Alt+K,Meta+Alt+K,
+Switch keyboard layout to English (US)=none,none,Switch keyboard layout to English (US)
+Switch to Last-Used Keyboard Layout=Meta+Alt+L,Meta+Alt+L,Switch to Last-Used Keyboard Layout
+Switch to Next Keyboard Layout=Meta+Alt+K,Meta+Alt+K,Switch to Next Keyboard Layout
 _k_friendly_name=Keyboard Layout Switcher
 
 [bilibili]
@@ -302,3 +303,12 @@ show-on-mouse-pos=Meta+V,Meta+V,Show Clipboard Items at Mouse Position
 switch to next activity=none,none,Switch to Next Activity
 switch to previous activity=none,none,Switch to Previous Activity
 toggle do not disturb=none,none,Toggle do not disturb
+
+[services][kitty.desktop]
+_launch=Ctrl+Alt+T
+
+[services][org.kde.konsole.desktop]
+_launch=none
+
+[services][touchpad-fix.desktop]
+_launch=Ctrl+Alt+Shift+T,none,Fix Touchpad

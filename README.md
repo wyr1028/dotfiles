@@ -13,6 +13,7 @@ home/            → 直接覆盖到 $HOME（含隐藏文件）
   .bashrc .zshrc .gitconfig .npmrc
   .config/
     fish/                 fish 配置（cachyos 预设 + eza 别名 + fcitx5 环境变量 + starship）
+    kitty/kitty.conf      Kitty：单窗口模式（禁用标签页）、Tokyo Night、字号 14、Ctrl+Alt+T
     starship.toml
     alacritty/            Alacritty（Tokyo Night）
     konsolerc + .local/share/konsole/TokyoNight.*   Konsole 配色/配置
@@ -48,7 +49,15 @@ system/          → 镜像根分区（需 --system）
   usr/local/bin/kb-white kb-calibrate ite8291r3-ctl
   etc/laptop-lights.conf        RGB 颜色校准参数（当前纯白：120,255,120）
   etc/modprobe.d/blacklist-ite8291.conf
-  etc/linux-3-finger-drag/3fd-config.json   三指拖拽参数
+  etc/linux-3-finger-drag/3fd-config.json   三指拖拽参数（acceleration 0.75）
+  usr/lib/systemd/system/three-finger-drag.service   自建 system 单元（DynamicUser + input 组）
+  etc/systemd/system/three-finger-drag.service.d/override.conf   Restart=always，防止代理挂掉后触控板无事件源
+  etc/systemd/system/three-finger-drag-watchdog.{service,timer}  每 3 秒体检并自动重启
+  usr/local/bin/three-finger-drag-watchdog      看门狗（检测 grab 丢失 / D 状态卡死 / 虚拟设备消失）
+  usr/local/bin/touchpad-fix                    手动一键重启触控板代理
+  etc/polkit-1/rules.d/49-touchpad-fix.rules    免密重启 three-finger-drag.service
+  etc/pacman.conf                   全量配置（含 archlinuxcn 源）
+  boot/limine-splash.png            引导背景图（limine.conf 的 wallpaper 引用）
   etc/snapper/configs/root      快照配置（定时快照 + 自动清理）
   etc/vconsole.conf etc/locale.conf
 packages/        软件包清单（显式安装 + AUR / archlinuxcn）
@@ -80,10 +89,10 @@ yay  -S --needed - < packages/pkglist-aur.txt
 | 启动器 | 复制 kickoff 为 `org.kde.plasma.kickoff.nofavorites`，隐藏「收藏」页 |
 | 字体 | Noto Sans CJK 全局；limine 引导字体放大；Markdown 预览字号 16/18 |
 | 输入法 | fcitx5 + pinyin + 中文词库；Wayland 走 text-input 协议，X11 走 XIM |
-| 终端 | Konsole(Tokyo Night) / Alacritty / fish + starship + eza |
+| 终端 | Kitty 为主终端（单窗口无标签、Ctrl+Alt+T、Ctrl+Shift+Enter 新窗口）；Konsole(Tokyo Night) / Alacritty 备用；fish + starship + eza |
 | 系统信息 | 自定义 fastfetch（左图标小、左右 padding、无最后一行分割线） |
 | 键盘灯光 | `ite8291r3` 经 usb 直写；`laptop-lights` 按时间自动亮度（白天 100 / 夜间 45），其余灯全关、仅键盘常亮白色；行间偏色补偿（TOP_SHIFT/BOTTOM_SHIFT） |
-| 触控板 | libinput 三指拖拽（`three-finger-drag` 配置），拖动结束延迟 0 |
+| 触控板 | `linux-3-finger-drag` 代理独占抓取触控板转发虚拟设备；acceleration 0.75、dragEndDelay 0；systemd DynamicUser 单元 + override `Restart=always`；watchdog 定时器每 3s 自愈；`Ctrl+Alt+Shift+T` 热键重启代理（polkit 免密） |
 | 引导 | limine + CachyOS 主题、term_palette、字体缩放 3x3 |
 | 快照 | snapper root 配置：定时快照 + 自动清理，与 limine 快照启动项联动 |
 | 软件 | archlinuxcn 源、yay、WeChat、Steam、VS Code/OSS、WPS、Clash Verge、Bilibili、网易云 |
@@ -102,4 +111,7 @@ yay  -S --needed - < packages/pkglist-aur.txt
 - `install.sh` 不会自动覆盖 `$HOME` 中同名文件之间的合并逻辑，建议先备份。
 - 系统文件里的 `laptop-lights` 依赖 `ite8291r3-ctl`（AUR: `ite8291r3-ctl-git` 或本仓库 `usr/local/bin/ite8291r3-ctl` 包装脚本）。
 - limine 配置为参考用：新机器请用 `limine-entry-tool` 重新生成，再套用 `term_*` 与 `term_font_scale` 等美化项。
+- `/usr/bin/linux-3-finger-drag` 是第三方源码（github.com/lmr97/linux-3-finger-drag）本地编译后手动安装的二进制，未纳入仓库；`install.sh` 会提示构建方式。
+- `/usr/share` 下没有手改文件：中文翻译、breeze-dark、fcitx5 词库（zhwiki / moegirl / web-slang）都来自仓库包（`fcitx5-pinyin-zhwiki` 等），已包含在软件包清单里。
+- 键盘 RGB 由 `ite_8291_lb` 内核模块 + `laptop-lights` 控制，其余灯光（logo/灯条）全部关闭。
 - 键盘白色校准值来自实机调试，换机器需重新用 `kb-calibrate` 标定。

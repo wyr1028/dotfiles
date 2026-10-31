@@ -196,7 +196,7 @@ changedPositions={"desktop:/新建文件夹":["1707x1067","0","0"]}
 iconSize=2
 lastResolution=1707x1067
 positions={"1707x1067":["1","10","desktop:/code-oss.desktop","0","3","desktop:/steam.desktop","0","6","desktop:/wps-office-prometheus.desktop","0","8","desktop:/org.kde.dolphin.desktop","0","4","desktop:/wechat-universal.desktop","0","7","desktop:/新建文件夹","0","0","desktop:/clash-verge.desktop","0","2","desktop:/btop.desktop","0","1","desktop:/firefox.desktop","0","5"]}
-sortMode=-1
+sortMode=6
 
 [Containments][43][Wallpaper][org.kde.image][General]
 Image=file:///usr/share/wallpapers/cachyos-wallpapers/EmeraldNekoLady.png

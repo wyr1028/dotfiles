@@ -18,7 +18,7 @@
                 "colorProfileSource": "sRGB",
                 "connectorName": "eDP-1",
                 "detectedDdcCi": false,
-                "edidHash": "<redacted>",
+                "edidHash": "d9023f6c464d17c1b5bb06e810c15c51",
                 "edidIdentifier": "BOE 2951 0 30 2022 0",
                 "edrPolicy": "always",
                 "hdrColorProfileSource": "EDID",
@@ -50,7 +50,7 @@
                 "sdrGamutWideness": 0,
                 "sharpness": 0,
                 "transform": "Normal",
-                "uuid": "<redacted>",
+                "uuid": "cd75836c-cd16-49c9-9ca3-f58419a3451a",
                 "vrrPolicy": "Automatic",
                 "wideColorGamut": false
             }
