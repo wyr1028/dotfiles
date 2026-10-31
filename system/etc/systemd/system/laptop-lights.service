@@ -1,0 +1,11 @@
+[Unit]
+Description=Set laptop keyboard backlight to constant white, disable aux RGB
+After=display-manager.service
+Wants=display-manager.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/laptop-lights
+
+[Install]
+WantedBy=graphical.target

@@ -1,0 +1,9 @@
+{
+    "acceleration": 0.9,
+    "dragEndDelay": 0,
+    "logFile": "stdout",
+    "logLevel": "info",
+    "entryDebounce": 50,
+    "probeDelay": 15,
+    "pressGrace": 75
+}

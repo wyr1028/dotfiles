@@ -1,0 +1,8 @@
+#!/bin/sh
+# 用法: kb-white [R,G,B] [亮度0-100]
+# 只改 RGB/亮度，保留 TOP_SHIFT/BOTTOM_SHIFT 渐变设置
+RGB=$1
+B=$2
+[ -n "$RGB" ] && sed -i "s/^RGB=.*/RGB=$RGB/" /etc/laptop-lights.conf
+[ -n "$B" ] && sed -i "s/^BRIGHTNESS=.*/BRIGHTNESS=$B/" /etc/laptop-lights.conf
+exec systemctl restart laptop-lights

@@ -1,0 +1,13 @@
+[Unit]
+Description=Save laptop lighting state to ITE controller NVRAM (so Limine/boot keeps it)
+DefaultDependencies=no
+Before=shutdown.target
+After=local-fs.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/laptop-lights --save
+TimeoutStartSec=15
+
+[Install]
+WantedBy=shutdown.target

@@ -1,0 +1,20 @@
+{
+  "workbench.colorTheme": "Tokyo Night",
+  "workbench.iconTheme": "catppuccin-mocha",
+  "editor.fontFamily": "'JetBrainsMono Nerd Font', 'Noto Sans Mono CJK SC', monospace",
+  "editor.fontSize": 15,
+  "editor.fontLigatures": true,
+  "editor.lineHeight": 1.6,
+  "editor.cursorSmoothCaretAnimation": "on",
+  "editor.smoothScrolling": true,
+  "editor.minimap.enabled": false,
+  "terminal.integrated.fontFamily": "'JetBrainsMono Nerd Font'",
+  "terminal.integrated.fontSize": 14,
+  "workbench.startupEditor": "none",
+  "window.titleBarStyle": "custom",
+  "files.autoSave": "onFocusChange",
+  "markdown.preview.fontSize": 18,
+  "markdown.preview.lineHeight": 1.75,
+  "markdown.preview.fontFamily": "-apple-system, 'Noto Sans CJK SC', 'Noto Sans', sans-serif",
+  "markdown.preview.breaks": true
+}

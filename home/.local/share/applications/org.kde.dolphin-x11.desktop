@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Dolphin (X11 拖拽兼容)
+Name[en_US]=Dolphin (X11 drag-drop compatible)
+Comment=File manager running on XWayland so drag & drop to WeChat works
+Exec=env QT_QPA_PLATFORM=xcb /usr/bin/dolphin %U
+Icon=system-file-manager
+Terminal=false
+Categories=System;FileManager;
+MimeType=inode/directory;

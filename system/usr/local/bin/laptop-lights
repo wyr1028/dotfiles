@@ -1,0 +1,156 @@
+#!/usr/bin/env python3
+# Set the ITE 8291 keyboard RGB to a static white with a top/bottom
+# gradient, optionally with a time-based automatic brightness, and turn
+# off the secondary ITE 8233 RGB controller.
+#
+# Tuning: edit /etc/laptop-lights.conf, then:
+#   sudo systemctl restart laptop-lights
+import sys
+import time
+
+sys.path.insert(0, "/opt/ite8291r3-ctl")
+
+import usb.core
+from ite8291r3_ctl import ite8291r3
+
+VENDOR = 0x048D
+KEYBOARD_PID = 0x600B
+AUX_PID = 0x7001
+
+CONF = "/etc/laptop-lights.conf"
+DEFAULT_RGB = (120, 255, 120)
+DEFAULT_BRIGHTNESS = 100
+NUM_ROWS = 6
+NUM_COLS = 21
+
+
+def load_conf():
+    cfg = {
+        "rgb": DEFAULT_RGB,
+        "brightness": DEFAULT_BRIGHTNESS,
+        "top_shift": 0,
+        "bottom_shift": 0,
+        "auto": False,
+        "day_brightness": 100,
+        "night_brightness": 45,
+        "day_start": 8,
+        "night_start": 23,
+        "save": False,
+    }
+    try:
+        with open(CONF) as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith("#") or "=" not in line:
+                    continue
+                key, _, value = line.partition("=")
+                key = key.strip().lower()
+                value = value.strip().strip('"').strip("'")
+                try:
+                    if key == "rgb":
+                        parts = [int(x) for x in value.split(",")]
+                        if len(parts) == 3:
+                            cfg["rgb"] = tuple(max(0, min(255, p)) for p in parts)
+                    elif key == "brightness":
+                        cfg["brightness"] = max(0, min(100, int(value)))
+                    elif key == "top_shift":
+                        cfg["top_shift"] = int(value)
+                    elif key == "bottom_shift":
+                        cfg["bottom_shift"] = int(value)
+                    elif key == "auto_brightness":
+                        cfg["auto"] = value.lower() in ("1", "true", "yes", "on")
+                    elif key == "day_brightness":
+                        cfg["day_brightness"] = max(0, min(100, int(value)))
+                    elif key == "night_brightness":
+                        cfg["night_brightness"] = max(0, min(100, int(value)))
+                    elif key == "day_start":
+                        cfg["day_start"] = int(value) % 24
+                    elif key == "night_start":
+                        cfg["night_start"] = int(value) % 24
+                    elif key == "save":
+                        cfg["save"] = value.lower() in ("1", "true", "yes", "on")
+                except ValueError:
+                    pass
+    except FileNotFoundError:
+        pass
+    return cfg
+
+
+def effective_brightness(cfg):
+    if not cfg["auto"]:
+        return cfg["brightness"]
+    hour = time.localtime().tm_hour
+    day_start = cfg["day_start"]
+    night_start = cfg["night_start"]
+    if day_start <= night_start:
+        is_day = day_start <= hour < night_start
+    else:
+        is_day = hour >= day_start or hour < night_start
+    return cfg["day_brightness"] if is_day else cfg["night_brightness"]
+
+
+def row_color(rgb, shift):
+    r, g, b = rgb
+    return (
+        max(0, min(255, r + shift)),
+        g,
+        max(0, min(255, b + shift)),
+    )
+
+
+def find(pid, tries=10):
+    for _ in range(tries):
+        dev = usb.core.find(idVendor=VENDOR, idProduct=pid)
+        if dev is not None:
+            return dev
+        time.sleep(0.5)
+    return None
+
+
+def main():
+    cfg = load_conf()
+    save = cfg["save"] or "--save" in sys.argv[1:]
+    brightness = effective_brightness(cfg)
+    top_shift = cfg["top_shift"]
+    bottom_shift = cfg["bottom_shift"]
+    ok = True
+
+    dev = find(KEYBOARD_PID)
+    if dev is None:
+        print("keyboard RGB controller (048d:600b) not found", file=sys.stderr)
+        ok = False
+    else:
+        try:
+            handle = ite8291r3.get((dev.bus, dev.address), None)
+            color_map = {}
+            for row in range(NUM_ROWS):
+                # Row 0 of the ITE controller is the physically lowest row
+                # of the keyboard, so invert the index: row 5 == top row.
+                t = (NUM_ROWS - 1 - row) / (NUM_ROWS - 1)
+                shift = round(top_shift + (bottom_shift - top_shift) * t)
+                color = row_color(cfg["rgb"], shift)
+                for col in range(NUM_COLS):
+                    color_map[(row, col)] = color
+            handle.set_key_colors(color_map, brightness, save=save)
+        except Exception as e:
+            print(f"keyboard RGB: {e}", file=sys.stderr)
+            ok = False
+
+    dev = find(AUX_PID)
+    if dev is not None:
+        try:
+            handle = ite8291r3.get((dev.bus, dev.address), None)
+            if save:
+                # 以“静态、亮度 0”的方式保存关闭状态；control=0x01 的 turn_off
+                # 在部分 8233 控制器上不会被写入 NVRAM。
+                handle.set_effect((0, 0, 0, 0, 0, 1))
+            else:
+                handle.turn_off()
+        except Exception as e:
+            print(f"aux RGB: {e}", file=sys.stderr)
+
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

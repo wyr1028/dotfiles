@@ -1,0 +1,52 @@
+# Tokyo Night 风格 Starship 提示符
+format = """
+[╭─](fg:#7aa2f7)$os$username$hostname$directory$git_branch$git_status$cmd_duration
+[╰─](fg:#7aa2f7)$character"""
+
+palette = "tokyo_night"
+
+[palettes.tokyo_night]
+blue = "#7aa2f7"
+cyan = "#7dcfff"
+green = "#9ece6a"
+purple = "#bb9af7"
+red = "#f7768e"
+orange = "#e0af68"
+fg = "#c0caf5"
+comment = "#565f89"
+
+[os]
+disabled = true
+
+[username]
+style_user = "fg:orange"
+style_root = "fg:red"
+format = "[$user]($style) "
+show_always = false
+
+[hostname]
+style = "fg:cyan"
+format = "[@$hostname]($style) "
+ssh_only = true
+
+[directory]
+style = "fg:blue"
+format = "[$path]($style) "
+truncation_length = 3
+truncation_symbol = "…/"
+
+[git_branch]
+style = "fg:purple"
+format = "[ $branch]($style) "
+
+[git_status]
+style = "fg:red"
+format = "[$all_status$ahead_behind]($style) "
+
+[cmd_duration]
+style = "fg:comment"
+format = "[ $duration]($style) "
+
+[character]
+success_symbol = "[❯](fg:green)"
+error_symbol = "[❯](fg:red)"

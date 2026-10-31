@@ -1,0 +1,19 @@
+{
+    "KPlugin": {
+        "Authors": [
+            {
+                "Name": "wyr",
+                "Email": ""
+            }
+        ],
+        "Category": "",
+        "Description": "Tokyo Night style by wyr (based on Breeze Dark)",
+        "EnabledByDefault": true,
+        "Id": "TokyoNight",
+        "License": "LGPL",
+        "Name": "Tokyo Night",
+        "Version": "6.30.0",
+        "Website": "https://www.kde.org/"
+    },
+    "X-Plasma-API": "5.0"
+}

@@ -1,0 +1,8 @@
+{
+    "security.workspace.trust.untrustedFiles": "open",
+    "chat.titleBar.openInAgentsWindow.enabled": false,
+    "workbench.browser.showInTitleBar": false,
+    "chat.titleBar.signIn.enabled": false,
+    "markdown.preview.fontSize": 16,
+    "markdown.preview.lineHeight": 1.75
+}

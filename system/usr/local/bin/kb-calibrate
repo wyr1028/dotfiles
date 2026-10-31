@@ -1,0 +1,10 @@
+#!/bin/sh
+# 依次试验多档白色（R=B，G=255），每档保持 6 秒。
+# 记下看起来最中性（不粉也不绿）的那一档，然后:
+#   sudo kb-white <R>,255,<R> 50
+for v in 255 240 230 220 210 200 190 180 170 160 150; do
+  echo ">>> 当前 R=B=$v  G=255  亮度50"
+  PYTHONPATH=/opt/ite8291r3-ctl python3 -m ite8291r3_ctl monocolor --rgb "$v,255,$v" -b 50
+  sleep 6
+done
+echo ">>> 循环结束"

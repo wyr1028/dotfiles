@@ -1,0 +1,9 @@
+bilibili-bin
+mechrevo-drivers-dkms
+netease-cloud-music-gtk-bin
+tokyonight-gtk-theme-git
+wechat-universal-bwrap
+wps-office-cn
+wps-office-mime-cn
+wps-office-mui-zh-cn
+xcursor-simp1e-tokyo-night

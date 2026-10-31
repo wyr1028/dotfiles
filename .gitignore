@@ -1,0 +1,15 @@
+# 凭据 / 私钥 / 缓存，永不提交
+.ssh/
+.gnupg/
+.pi/agent/auth.json
+**/hosts.yml
+**/*.pem
+**/*.key
+**/keyring*
+**/Cookies*
+**/Cache/
+**/CacheStorage/
+**/blob_storage/
+**/Local Storage/
+**/Session Storage/
+**/logs/

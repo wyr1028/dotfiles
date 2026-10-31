@@ -1,0 +1,2 @@
+#!/bin/sh
+exec env PYTHONPATH=/opt/ite8291r3-ctl python3 -m ite8291r3_ctl "$@"

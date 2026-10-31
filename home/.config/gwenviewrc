@@ -1,0 +1,22 @@
+[General]
+LastUsedVersion=210800
+
+[MainWindow]
+MenuBar=Disabled
+
+[Recent Files]
+File1[$e]=$HOME/文档/WeChat_Data/xwechat_files/wxid_9ij3yaqho8pq22_ffd9/temp/RWTemp/2026-10/564552fd09f80a19fe81a7ba05996a36.jpg
+File2[$e]=$HOME/文档/WeChat_Data/xwechat_files/wxid_9ij3yaqho8pq22_ffd9/temp/RWTemp/2026-10/69e09b5f7e25b3bc1e4474663244fa6b.png
+File3[$e]=$HOME/文档/WeChat_Data/xwechat_files/wxid_9ij3yaqho8pq22_ffd9/temp/RWTemp/2026-10/9cbc77080575bbd6a5350ee73bb90605.png
+File4[$e]=$HOME/桌面/新建文件夹/69e09b5f7e25b3bc1e4474663244fa6b.png
+File5[$e]=$HOME/桌面/重庆手抄报_预览.png
+File6[$e]=$HOME/桌面/重庆手抄报_标题预览.png
+Name1[$e]=564552fd09f80a19fe81a7ba05996a36.jpg
+Name2[$e]=69e09b5f7e25b3bc1e4474663244fa6b.png
+Name3[$e]=9cbc77080575bbd6a5350ee73bb90605.png
+Name4[$e]=69e09b5f7e25b3bc1e4474663244fa6b.png
+Name5[$e]=重庆手抄报_预览.png
+Name6[$e]=重庆手抄报_标题预览.png
+
+[SideBar]
+InformationSplitterSizes=211,244
